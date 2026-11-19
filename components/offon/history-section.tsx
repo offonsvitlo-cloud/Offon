@@ -5,6 +5,7 @@ import { CalendarDays, Clock, History, ZapOff } from 'lucide-react'
 import type { AlertEvent } from '@/lib/api'
 import { dayTitle, dayTotals, formatHours, halfSlots, offIntervals, type Snapshot } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
+import { useT } from '@/hooks/use-app-data'
 import { AlertItem } from './alert-item'
 
 interface HistorySectionProps {
@@ -16,6 +17,7 @@ interface HistorySectionProps {
 }
 
 export function HistorySection({ snapshot, queue, todayKey, tomorrowKey, alerts }: HistorySectionProps) {
+  const { t, lang } = useT()
   const [mode, setMode] = useState<'days' | 'events'>('days')
 
   const merged = { ...(snapshot.historyDays ?? {}), ...(snapshot.days ?? {}) }
@@ -27,11 +29,11 @@ export function HistorySection({ snapshot, queue, todayKey, tomorrowKey, alerts 
 
   const tagFor = (k: string) =>
     k === tomorrowKey
-      ? { text: 'Завтра', cls: 'text-sky-600 dark:text-sky-400' }
+      ? { text: t('hist.tomorrow'), cls: 'text-sky-600 dark:text-sky-400' }
       : k === todayKey
-        ? { text: 'Сьогодні', cls: 'text-warn' }
+        ? { text: t('hist.today'), cls: 'text-warn' }
         : Math.abs(Number(k) - Number(yesterdayKey)) < 7200
-          ? { text: 'Вчора', cls: 'text-muted-foreground' }
+          ? { text: t('hist.yesterday'), cls: 'text-muted-foreground' }
           : null
 
   return (
@@ -39,9 +41,9 @@ export function HistorySection({ snapshot, queue, todayKey, tomorrowKey, alerts 
       <div className="flex items-center justify-between gap-2">
         <h2 id="history-title" className="flex items-center gap-1.5 text-sm text-muted-foreground">
           <History className="size-4 text-warn" aria-hidden="true" />
-          Історія відключень та подій
+          {t('hist.title')}
         </h2>
-        <div role="tablist" aria-label="Вигляд історії" className="flex rounded-xl bg-muted p-0.5 text-sm">
+        <div role="tablist" aria-label={t('hist.viewAria')} className="flex rounded-xl bg-muted p-0.5 text-sm">
           <button
             type="button"
             role="tab"
@@ -53,7 +55,7 @@ export function HistorySection({ snapshot, queue, todayKey, tomorrowKey, alerts 
             )}
           >
             <CalendarDays className="size-3.5" aria-hidden="true" />
-            За днями
+            {t('hist.byDays')}
           </button>
           <button
             type="button"
@@ -65,7 +67,7 @@ export function HistorySection({ snapshot, queue, todayKey, tomorrowKey, alerts 
               mode === 'events' ? 'bg-card font-medium shadow-sm' : 'text-muted-foreground',
             )}
           >
-            Події ({alerts.length})
+            {t('hist.events', { n: alerts.length })}
           </button>
         </div>
       </div>
@@ -81,16 +83,16 @@ export function HistorySection({ snapshot, queue, todayKey, tomorrowKey, alerts 
               <li key={k} className="flex items-center justify-between gap-3 rounded-2xl border bg-card px-4 py-3">
                 <div className="min-w-0">
                   <p className="font-display text-lg font-bold">
-                    {dayTitle(k)}
+                    {dayTitle(k, lang)}
                     {tag && <span className={cn('font-medium', tag.cls)}> · {tag.text}</span>}
                   </p>
                   <p className="flex items-center gap-1 truncate text-sm text-muted-foreground">
                     <Clock className="size-3.5 shrink-0" aria-hidden="true" />
                     {!totals
-                      ? 'Графік не опубліковано'
+                      ? t('hist.notPublished')
                       : intervals.length
                         ? intervals.join(', ')
-                        : 'Без відключень · 0 год'}
+                        : t('hist.noOutages', { h: t('unit.h') })}
                   </p>
                 </div>
                 <span
@@ -100,7 +102,7 @@ export function HistorySection({ snapshot, queue, todayKey, tomorrowKey, alerts 
                   )}
                 >
                   <ZapOff className="size-4" aria-hidden="true" />
-                  {totals ? `${formatHours(totals.offHours)} год` : '—'}
+                  {totals ? `${formatHours(totals.offHours)} ${t('unit.h')}` : '—'}
                 </span>
               </li>
             )
@@ -114,7 +116,7 @@ export function HistorySection({ snapshot, queue, todayKey, tomorrowKey, alerts 
         </ul>
       ) : (
         <p className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-          Подій поки немає
+          {t('hist.noEvents')}
         </p>
       )}
     </section>

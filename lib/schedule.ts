@@ -1,3 +1,5 @@
+import { LOCALE, translate, type Lang } from './i18n'
+
 export type SlotValue = 'yes' | 'no' | 'first' | 'second' | 'maybe' | 'mfirst' | 'msecond' | string
 export type DayGroups = Record<string, Record<string, SlotValue>>
 
@@ -169,24 +171,32 @@ export function offIntervals(slots: HalfState[]) {
   return out
 }
 
-export function formatDuration(totalMin: number) {
+export function formatDuration(totalMin: number, lang: Lang = 'uk') {
   const min = Math.max(0, Math.round(totalMin))
   const h = Math.floor(min / 60)
   const m = min % 60
-  if (h && m) return `${h} год ${m} хв`
-  if (h) return `${h} год`
-  return `${m} хв`
+  const hu = translate(lang, 'unit.h')
+  const mu = translate(lang, 'unit.m')
+  if (h && m) return `${h} ${hu} ${m} ${mu}`
+  if (h) return `${h} ${hu}`
+  return `${m} ${mu}`
 }
 
 export function formatHours(h: number) {
   return Number.isInteger(h) ? `${h}` : h.toFixed(1)
 }
 
-const weekdayFmt = new Intl.DateTimeFormat('uk-UA', { timeZone: KYIV_TZ, weekday: 'long' })
-const dayMonthFmt = new Intl.DateTimeFormat('uk-UA', { timeZone: KYIV_TZ, day: '2-digit', month: '2-digit' })
+const weekdayFmts: Partial<Record<Lang, Intl.DateTimeFormat>> = {}
+const dayMonthFmts: Partial<Record<Lang, Intl.DateTimeFormat>> = {}
 
-export function dayTitle(key: string) {
+export function dayTitle(key: string, lang: Lang = 'uk') {
+  const wdFmt = (weekdayFmts[lang] ??= new Intl.DateTimeFormat(LOCALE[lang], { timeZone: KYIV_TZ, weekday: 'long' }))
+  const dmFmt = (dayMonthFmts[lang] ??= new Intl.DateTimeFormat(LOCALE[lang], {
+    timeZone: KYIV_TZ,
+    day: '2-digit',
+    month: '2-digit',
+  }))
   const d = new Date(Number(key) * 1000)
-  const wd = weekdayFmt.format(d)
-  return `${wd.charAt(0).toUpperCase()}${wd.slice(1)}, ${dayMonthFmt.format(d)}`
+  const wd = wdFmt.format(d)
+  return `${wd.charAt(0).toUpperCase()}${wd.slice(1)}, ${dmFmt.format(d)}`
 }

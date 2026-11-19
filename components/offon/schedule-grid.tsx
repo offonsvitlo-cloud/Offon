@@ -2,7 +2,9 @@
 
 import { CircleHelp, Clock, Zap, ZapOff } from 'lucide-react'
 import { hourKind, type HourKind, type SlotValue } from '@/lib/schedule'
+import type { Key } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
+import { useT } from '@/hooks/use-app-data'
 import { Switch } from './switch'
 
 interface ScheduleGridProps {
@@ -25,22 +27,22 @@ const KIND_STYLE: Record<HourKind, string> = {
   unknown: 'bg-muted text-muted-foreground border-border',
 }
 
-const KIND_TEXT: Record<HourKind, string> = {
-  on: 'є',
-  off: 'Вимк.',
-  'off-first': 'до :30',
-  'off-second': 'з :30',
-  maybe: 'Можл.',
-  unknown: '—',
+const KIND_TEXT: Record<HourKind, Key> = {
+  on: 'kind.on',
+  off: 'kind.off',
+  'off-first': 'kind.offFirst',
+  'off-second': 'kind.offSecond',
+  maybe: 'kind.maybe',
+  unknown: 'kind.unknown',
 }
 
-const KIND_LABEL: Record<HourKind, string> = {
-  on: 'світло є',
-  off: 'відключення',
-  'off-first': 'відключення перші 30 хвилин',
-  'off-second': 'відключення другі 30 хвилин',
-  maybe: 'можливе відключення',
-  unknown: 'немає даних',
+const KIND_LABEL: Record<HourKind, Key> = {
+  on: 'kindLabel.on',
+  off: 'kindLabel.off',
+  'off-first': 'kindLabel.offFirst',
+  'off-second': 'kindLabel.offSecond',
+  maybe: 'kindLabel.maybe',
+  unknown: 'kindLabel.unknown',
 }
 
 function KindIcon({ kind }: { kind: HourKind }) {
@@ -62,6 +64,7 @@ export function ScheduleGrid({
   dark,
   onToggleDark,
 }: ScheduleGridProps) {
+  const { t } = useT()
   const currentHour = Math.floor(minutesOfDay / 60)
   const hasData = hours && Object.keys(hours).length > 0
   const dayProgress = (minutesOfDay / 1440) * 100
@@ -70,17 +73,18 @@ export function ScheduleGrid({
     <section aria-labelledby="schedule-title" className="rounded-3xl border bg-card p-4 shadow-sm">
       <div className="flex items-center justify-between gap-3">
         <h2 id="schedule-title" className="font-display text-xl font-medium tracking-wide uppercase">
-          Графік відключень
+          {t('grid.title')}
         </h2>
         <label className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span className={cn(showTomorrow && 'font-medium text-foreground')}>Завтра</span>
-          <Switch checked={showTomorrow} onCheckedChange={onToggleTomorrow} label="Показати графік на завтра" />
+          <span className={cn(showTomorrow && 'font-medium text-foreground')}>{t('grid.tomorrow')}</span>
+          <Switch checked={showTomorrow} onCheckedChange={onToggleTomorrow} label={t('grid.tomorrowAria')} />
         </label>
       </div>
 
       <div className="mt-1 flex items-end justify-between gap-2 text-sm text-muted-foreground">
         <span>
-          24-годинна шкала ({queueName}){showTomorrow ? ' · завтра' : ''}
+          {t('grid.scale', { q: queueName })}
+          {showTomorrow ? t('grid.scaleTomorrow') : ''}
         </span>
         {!showTomorrow && <span className="font-medium text-foreground tabular-nums">{clockLabel}</span>}
       </div>
@@ -95,7 +99,7 @@ export function ScheduleGrid({
       )}
 
       {hasData ? (
-        <ol className="mt-3 grid grid-cols-6 gap-1.5" aria-label={`Графік по годинах, ${queueName}`}>
+        <ol className="mt-3 grid grid-cols-6 gap-1.5" aria-label={t('grid.listAria', { q: queueName })}>
           {Array.from({ length: 24 }, (_, h) => {
             const kind = hourKind(hours?.[String(h + 1)])
             const isNow = !showTomorrow && h === currentHour
@@ -103,7 +107,7 @@ export function ScheduleGrid({
             return (
               <li
                 key={h}
-                aria-label={`${time} — ${KIND_LABEL[kind]}${isNow ? ', зараз' : ''}`}
+                aria-label={`${time} — ${t(KIND_LABEL[kind])}${isNow ? t('grid.nowAria') : ''}`}
                 aria-current={isNow ? 'time' : undefined}
                 className={cn(
                   'relative flex min-h-14 flex-col justify-between rounded-[10px] border px-1.5 py-1.5 text-[11px] leading-tight transition-transform',
@@ -116,34 +120,35 @@ export function ScheduleGrid({
                   {time}
                   <KindIcon kind={kind} />
                 </span>
-                <span className="truncate text-xs font-medium">{KIND_TEXT[kind]}</span>
+                <span className="truncate text-xs font-medium">{t(KIND_TEXT[kind])}</span>
               </li>
             )
           })}
         </ol>
       ) : (
         <p className="mt-4 rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-          {showTomorrow ? 'Графік на завтра ще не опубліковано' : 'Графік на сьогодні ще не опубліковано'}
+          {showTomorrow ? t('grid.emptyTomorrow') : t('grid.emptyToday')}
         </p>
       )}
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground" aria-label="Легенда">
+        <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground" aria-label={t('grid.legend')}>
           <li className="flex items-center gap-1">
-            <span className="size-2.5 rounded-sm bg-on" aria-hidden="true" />є
+            <span className="size-2.5 rounded-sm bg-on" aria-hidden="true" />
+            {t('grid.legendOn')}
           </li>
           <li className="flex items-center gap-1">
             <span className="size-2.5 rounded-sm bg-off" aria-hidden="true" />
-            вимк.
+            {t('grid.legendOff')}
           </li>
           <li className="flex items-center gap-1">
             <span className="size-2.5 rounded-sm bg-warn" aria-hidden="true" />
-            пів години
+            {t('grid.legendHalf')}
           </li>
         </ul>
         <label className="flex items-center gap-2 text-sm">
-          Світло/Темно
-          <Switch checked={dark} onCheckedChange={onToggleDark} label="Темна тема" />
+          {t('grid.theme')}
+          <Switch checked={dark} onCheckedChange={onToggleDark} label={t('grid.darkAria')} />
         </label>
       </div>
     </section>

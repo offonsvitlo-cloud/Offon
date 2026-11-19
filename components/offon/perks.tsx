@@ -3,26 +3,29 @@
 import { useState } from 'react'
 import { Check, Copy, FlaskConical, Gift, LoaderCircle, Send, Users } from 'lucide-react'
 import { getTelegram, haptic, isTrialActive, TRIAL_DAYS, type Subscriber } from '@/lib/api'
+import { daysWord, LOCALE, translate, type Lang } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { useActions, useExtras } from '@/hooks/use-app-data'
+import { useActions, useExtras, useT } from '@/hooks/use-app-data'
 
-const SHARE_TEXT = 'Стеж за відключеннями світла за графіком ДТЕК:'
-
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleString('uk-UA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+function formatDate(iso: string, lang: Lang) {
+  return new Date(iso).toLocaleString(LOCALE[lang], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 
-function timeLeft(iso: string, now: Date) {
+function timeLeft(iso: string, now: Date, lang: Lang) {
   const ms = Math.max(0, new Date(iso).getTime() - now.getTime())
   const days = Math.floor(ms / 86_400_000)
   const hours = Math.floor((ms % 86_400_000) / 3_600_000)
-  if (days > 0) return `${days} дн ${hours} год`
+  const d = translate(lang, 'unit.d')
+  const h = translate(lang, 'unit.h')
+  const m = translate(lang, 'unit.m')
+  if (days > 0) return `${days} ${d} ${hours} ${h}`
   const minutes = Math.floor((ms % 3_600_000) / 60_000)
-  return `${hours} год ${minutes} хв`
+  return `${hours} ${h} ${minutes} ${m}`
 }
 
 export function TrialCard({ subscriber, now, className }: { subscriber: Subscriber; now: Date; className?: string }) {
   const { unlockTrial } = useActions()
+  const { t, lang } = useT()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -37,7 +40,7 @@ export function TrialCard({ subscriber, now, className }: { subscriber: Subscrib
       await unlockTrial()
       haptic('medium')
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Не вдалося активувати тестовий режим')
+      setError(e instanceof Error ? e.message : t('sheet.trialFail'))
     } finally {
       setBusy(false)
     }
@@ -47,25 +50,25 @@ export function TrialCard({ subscriber, now, className }: { subscriber: Subscrib
     const total = TRIAL_DAYS * 86_400_000
     const left = Math.max(0, new Date(subscriber.rewardSlotExpiresAt).getTime() - now.getTime())
     return (
-      <section className={cn('rounded-3xl border border-on/40 bg-on-soft p-4', className)} aria-label="Тестовий режим">
+      <section className={cn('rounded-3xl border border-on/40 bg-on-soft p-4', className)} aria-label={t('perk.trialAria')}>
         <div className="flex items-center gap-3">
           <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-on text-on-foreground shadow-[0_0_14px_-3px_var(--on)]">
             <FlaskConical className="size-5" aria-hidden="true" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="font-display text-lg font-bold">Тестовий режим активний</p>
+            <p className="font-display text-lg font-bold">{t('perk.trialActive')}</p>
             <p className="text-sm text-muted-foreground">
-              3-тя адреса до {formatDate(subscriber.rewardSlotExpiresAt)}
+              {t('perk.trialUntil', { d: formatDate(subscriber.rewardSlotExpiresAt, lang) })}
             </p>
           </div>
           <span className="shrink-0 rounded-full bg-card px-2.5 py-1 text-xs font-medium tabular-nums text-on">
-            {timeLeft(subscriber.rewardSlotExpiresAt, now)}
+            {timeLeft(subscriber.rewardSlotExpiresAt, now, lang)}
           </span>
         </div>
         <div
           className="mt-3 h-1.5 overflow-hidden rounded-full bg-card"
           role="progressbar"
-          aria-label="Залишок тестового періоду"
+          aria-label={t('perk.trialLeft')}
           aria-valuemin={0}
           aria-valuemax={100}
           aria-valuenow={Math.round((left / total) * 100)}
@@ -80,16 +83,16 @@ export function TrialCard({ subscriber, now, className }: { subscriber: Subscrib
     <section
       className={cn('glow-card relative overflow-hidden rounded-3xl border bg-card p-4', className)}
       style={{ ['--glow' as string]: 'var(--on)' }}
-      aria-label="Тестовий режим"
+      aria-label={t('perk.trialAria')}
     >
       <div className="flex items-start gap-3">
         <span className="grid size-11 shrink-0 place-items-center rounded-2xl bg-on-soft text-on">
           <FlaskConical className="size-5" aria-hidden="true" />
         </span>
         <div className="min-w-0">
-          <p className="font-display text-lg font-bold">3-тя адреса на {TRIAL_DAYS} дні</p>
+          <p className="font-display text-lg font-bold">{t('perk.trialTitle', { n: TRIAL_DAYS, days: daysWord(lang, TRIAL_DAYS) })}</p>
           <p className="text-sm text-muted-foreground">
-            Тестовий режим: безкоштовно додайте ще одну адресу та перевірте сповіщення. Активується один раз.
+            {t('perk.trialDesc')}
           </p>
         </div>
       </div>
@@ -100,7 +103,7 @@ export function TrialCard({ subscriber, now, className }: { subscriber: Subscrib
         className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-on py-2.5 font-medium text-on-foreground shadow-[0_6px_20px_-8px_var(--on)] disabled:opacity-60"
       >
         {busy && <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />}
-        Спробувати безкоштовно
+        {t('perk.trialBtn')}
       </button>
       {error && (
         <p role="alert" className="mt-2 text-center text-sm text-destructive">
@@ -130,6 +133,7 @@ async function copyToClipboard(text: string) {
 
 export function ReferralCard({ className }: { className?: string }) {
   const extras = useExtras()
+  const { t, lang } = useT()
   const [toast, setToast] = useState<string | null>(null)
   const ref = extras.data?.referral
 
@@ -142,18 +146,18 @@ export function ReferralCard({ className }: { className?: string }) {
     if (!ref?.link) return
     const ok = await copyToClipboard(ref.link)
     haptic('light')
-    flash(ok ? 'Посилання скопійовано' : 'Не вдалося скопіювати')
+    flash(ok ? t('perk.copied') : t('perk.copyFail'))
   }
 
   const share = async () => {
     if (!ref?.link) return
     haptic('light')
-    const url = `https://t.me/share/url?url=${encodeURIComponent(ref.link)}&text=${encodeURIComponent(SHARE_TEXT)}`
+    const url = `https://t.me/share/url?url=${encodeURIComponent(ref.link)}&text=${encodeURIComponent(t('perk.shareText'))}`
     const tg = getTelegram()
     await copyToClipboard(ref.link)
     if (tg?.initData && tg.openTelegramLink) tg.openTelegramLink(url)
     else window.open(url, '_blank', 'noopener')
-    flash('Посилання скопійовано. Якщо вікно вибору чату не відкрилось, надішліть його вручну.')
+    flash(t('perk.sharedHint'))
   }
 
   return (
@@ -164,17 +168,22 @@ export function ReferralCard({ className }: { className?: string }) {
         </span>
         <div className="min-w-0">
           <p id="ref-title" className="font-display text-lg font-bold">
-            Запросити друга
+            {t('perk.refTitle')}
           </p>
           <p className="text-sm text-muted-foreground">
-            За кожного нового друга +1 адреса на {ref?.bonusDays ?? 3} дні (разом до {ref?.maxDays ?? 30} днів).
+            {t('perk.refDesc', {
+              n: ref?.bonusDays ?? 3,
+              days: daysWord(lang, ref?.bonusDays ?? 3),
+              max: ref?.maxDays ?? 30,
+              maxDays: daysWord(lang, ref?.maxDays ?? 30),
+            })}
           </p>
         </div>
       </div>
 
       {extras.isLoading ? (
         <p className="mt-3 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> Завантаження…
+          <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> {t('perk.loading')}
         </p>
       ) : ref?.link ? (
         <>
@@ -182,7 +191,7 @@ export function ReferralCard({ className }: { className?: string }) {
             type="button"
             onClick={copy}
             className="mt-3 flex w-full items-center gap-2 rounded-xl border border-dashed bg-muted/50 px-3 py-2.5 text-left text-sm"
-            aria-label="Скопіювати реферальне посилання"
+            aria-label={t('perk.copyAria')}
           >
             <span className="min-w-0 flex-1 truncate font-mono text-xs text-muted-foreground">{ref.link}</span>
             <Copy className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -194,7 +203,7 @@ export function ReferralCard({ className }: { className?: string }) {
               className="flex items-center justify-center gap-1.5 rounded-full bg-on py-2.5 font-medium text-on-foreground"
             >
               <Send className="size-4" aria-hidden="true" />
-              Поділитися
+              {t('perk.share')}
             </button>
             <button
               type="button"
@@ -202,25 +211,25 @@ export function ReferralCard({ className }: { className?: string }) {
               className="flex items-center justify-center gap-1.5 rounded-full border py-2.5 font-medium hover:bg-muted"
             >
               <Copy className="size-4" aria-hidden="true" />
-              Копіювати
+              {t('perk.copy')}
             </button>
           </div>
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
             <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2">
               <Users className="size-4 text-muted-foreground" aria-hidden="true" />
               <span>
-                Запрошено: <b className="tabular-nums">{ref.count}</b>
+                {t('perk.invited')} <b className="tabular-nums">{ref.count}</b>
               </span>
             </div>
             <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2">
               <Check className={cn('size-4', ref.bonusUntil ? 'text-on' : 'text-muted-foreground')} aria-hidden="true" />
-              <span className="truncate">{ref.bonusUntil ? `Бонус до ${formatDate(ref.bonusUntil)}` : 'Бонусу ще немає'}</span>
+              <span className="truncate">{ref.bonusUntil ? t('perk.bonusUntil', { d: formatDate(ref.bonusUntil, lang) }) : t('perk.noBonus')}</span>
             </div>
           </div>
         </>
       ) : (
         <p className="mt-3 rounded-xl bg-muted/60 p-3 text-center text-sm text-muted-foreground">
-          Реферальне посилання доступне лише в Telegram.
+          {t('perk.onlyTg')}
         </p>
       )}
 

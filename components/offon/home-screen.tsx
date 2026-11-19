@@ -5,8 +5,9 @@ import { MapPinPlus, RefreshCw } from 'lucide-react'
 import type { Bootstrap } from '@/lib/api'
 import { haptic } from '@/lib/api'
 import { queueStatus } from '@/lib/address-status'
+import { queueLabel } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { useActions } from '@/hooks/use-app-data'
+import { useActions, useT } from '@/hooks/use-app-data'
 import { AddressStrip } from './address-strip'
 import { HistorySection } from './history-section'
 import { ScheduleGrid } from './schedule-grid'
@@ -24,6 +25,7 @@ interface HomeScreenProps {
 
 export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark, onToggleDark }: HomeScreenProps) {
   const { refreshDtek } = useActions()
+  const { t, lang } = useT()
   const [refreshing, setRefreshing] = useState(false)
   const [showTomorrow, setShowTomorrow] = useState(false)
 
@@ -49,7 +51,7 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark
       className="flex shrink-0 items-center gap-1.5 rounded-full border border-foreground/20 bg-card px-3.5 py-1.5 text-sm font-medium shadow-sm transition-colors hover:bg-muted disabled:opacity-70"
     >
       <RefreshCw className={cn('size-4', refreshing && 'animate-spin')} aria-hidden="true" />
-      Оновити ДТЕК
+      {t('home.refresh')}
     </button>
   )
 
@@ -57,7 +59,7 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark
     return (
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
-          <p className="text-sm text-muted-foreground">Оновлено ДТЕК: {snapshot.update ?? '—'}</p>
+          <p className="text-sm text-muted-foreground">{t('home.updated', { v: snapshot.update ?? '—' })}</p>
           {refreshButton}
         </div>
         <section
@@ -67,17 +69,16 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark
           <span className="mx-auto grid size-16 place-items-center rounded-2xl bg-on text-on-foreground shadow-[0_0_24px_-2px_var(--on)]">
             <MapPinPlus className="size-8" aria-hidden="true" />
           </span>
-          <h2 className="mt-4 font-display text-2xl font-bold">Додайте свою адресу</h2>
+          <h2 className="mt-4 font-display text-2xl font-bold">{t('home.addTitle')}</h2>
           <p className="mx-auto mt-1 max-w-xs text-sm text-muted-foreground">
-            Оберіть місто, вулицю та будинок, і ми покажемо, чи є світло зараз, графік на добу та надішлемо
-            сповіщення в Telegram.
+            {t('home.addDesc')}
           </p>
           <button
             type="button"
             onClick={onAddAddress}
             className="mt-5 w-full rounded-full bg-on py-3 text-lg font-medium text-on-foreground shadow-[0_4px_20px_-6px_var(--on)]"
           >
-            Додати адресу
+            {t('home.addBtn')}
           </button>
         </section>
       </div>
@@ -94,9 +95,9 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 text-sm leading-snug text-muted-foreground">
           <p className="truncate text-foreground/80">
-            {selected.label} · {selected.queueDisplay} · {selected.city}
+            {selected.label} · {queueLabel(lang, selected.queue)} · {selected.city}
           </p>
-          <p>Оновлено ДТЕК: {snapshot.update ?? '—'}</p>
+          <p>{t('home.updated', { v: snapshot.update ?? '—' })}</p>
         </div>
         {refreshButton}
       </div>
@@ -119,12 +120,12 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark
         onClick={onAddAddress}
         className="w-full rounded-full border-2 border-foreground/25 bg-card/60 py-3 font-display text-xl font-medium shadow-sm transition-colors hover:border-on hover:text-on"
       >
-        Додати адресу
+        {t('home.addBtn')}
       </button>
 
       <ScheduleGrid
         hours={hours}
-        queueName={selected.queueDisplay}
+        queueName={queueLabel(lang, selected.queue)}
         showTomorrow={showTomorrow}
         onToggleTomorrow={(v) => {
           haptic('light')

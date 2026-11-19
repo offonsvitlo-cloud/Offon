@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
 import useSWR from 'swr'
 import {
   api,
@@ -16,6 +16,15 @@ import {
   type Subscriber,
 } from '@/lib/api'
 import { buildDemoBootstrap } from '@/lib/demo-data'
+import {
+  clientPref,
+  resolveLang,
+  setUiLang,
+  subscribeLang,
+  translate,
+  type Key,
+  type Lang,
+} from '@/lib/i18n'
 import type { Snapshot } from '@/lib/schedule'
 
 async function loadBootstrap(): Promise<Bootstrap> {
@@ -32,6 +41,18 @@ export function useBootstrap() {
     refreshInterval: 5 * 60 * 1000,
     revalidateOnFocus: true,
   })
+}
+
+export function useLang(): Lang {
+  const pref = useSyncExternalStore(subscribeLang, clientPref, () => '')
+  const { data } = useBootstrap()
+  return resolveLang(pref, data?.subscriber.language)
+}
+
+export function useT() {
+  const lang = useLang()
+  const t = useCallback((key: Key, vars?: Record<string, string | number>) => translate(lang, key, vars), [lang])
+  return { t, lang }
 }
 
 function demoExtras(data: Bootstrap): ExtrasStatus {
@@ -72,6 +93,7 @@ export type NewAddress = Pick<Address, 'label' | 'city' | 'street' | 'houseNum' 
 export function useActions() {
   const { data, mutate } = useBootstrap()
   const demo = Boolean(data?.demo)
+  const lang = useLang()
 
   const setSubscriber = (subscriber: Subscriber) =>
     mutate((prev) => (prev ? { ...prev, subscriber } : prev), { revalidate: false })
@@ -100,7 +122,7 @@ export function useActions() {
     async addAddress(body: NewAddress) {
       if (demo) {
         if (data && data.subscriber.addresses.length >= maxAddresses(data)) {
-          throw new ApiError('Досягнуто ліміту адрес', 403, 'LIMIT_REACHED')
+          throw new ApiError(translate(lang, 'addrs.limitReached'), 403, 'LIMIT_REACHED')
         }
         const addr: Address = {
           ...body,
@@ -156,6 +178,16 @@ export function useActions() {
       })
       await setSubscriber(res.subscriber)
     },
+    async setLanguage(l: Lang) {
+      setUiLang(l)
+      await patchLocal((s) => ({ ...s, language: l }))
+      if (demo) return
+      const res = await api<{ subscriber: Subscriber }>('/api/subscriber/settings', {
+        method: 'PATCH',
+        body: json({ language: l }),
+      })
+      await setSubscriber(res.subscriber)
+    },
     async refreshDtek() {
       if (demo) {
         await mutate()
@@ -169,8 +201,8 @@ export function useActions() {
         const evt: AlertEvent = {
           id: `demo_${Date.now()}`,
           type: 'bot_message',
-          title: 'Тест сповіщення',
-          message: 'Демо-режим: у Telegram повідомлення не надсилається',
+          title: translate(lang, 'alerts.demoTitle'),
+          message: translate(lang, 'alerts.demoMsg'),
           createdAt: new Date().toISOString(),
         }
         await pushAlert(evt)

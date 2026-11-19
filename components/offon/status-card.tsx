@@ -2,6 +2,7 @@ import { CircleHelp, Zap, ZapOff } from 'lucide-react'
 import type { QueueStatus } from '@/lib/address-status'
 import { formatDuration, formatHours } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
+import { useT } from '@/hooks/use-app-data'
 
 const SPARKS = [
   { left: '6%', bottom: '10%', delay: '0s', dur: '4.2s', dx: '6px', size: 4 },
@@ -14,24 +15,37 @@ const SPARKS = [
 ]
 
 export function StatusCard({ status }: { status: QueueStatus }) {
+  const { t, lang } = useT()
   const { now, totals, clock } = status
   const off = now.state === 'off'
   const unknown = now.state === 'unknown'
   const glow = off ? 'var(--alert)' : unknown ? 'var(--muted-foreground)' : 'var(--on)'
 
-  const title = off ? 'Світла немає' : unknown ? 'Немає даних' : now.maybe ? 'Можливе відключення' : 'Світло є'
+  const tomorrowPublished = status.tomorrow.some((s) => s !== 'unknown')
+  const title = off
+    ? t('status.off')
+    : unknown
+      ? t('status.unknown')
+      : now.maybe
+        ? t('status.maybe')
+        : t('status.on')
   const subtitle = unknown
-    ? 'Графік ДТЕК для цієї черги ще не опубліковано'
+    ? t('status.subUnknown')
     : now.nextChangeMin == null
       ? off
-        ? 'Увімкнення за графіком не заплановано'
-        : 'Без відключень до кінця завтра'
-      : `${off ? 'Увімкнення' : 'Вимкнення'} через ${formatDuration(now.nextChangeMin)} (о ${now.nextChangeLabel})`
+        ? t('status.subOffNoPlan')
+        : tomorrowPublished
+          ? t('status.subOnTomorrow')
+          : t('status.subOnDay')
+      : t(off ? 'status.onIn' : 'status.offIn', {
+          d: formatDuration(now.nextChangeMin, lang),
+          t: now.nextChangeLabel ?? '',
+        })
 
   return (
     <section
       aria-live="polite"
-      aria-label="Поточний статус світла"
+      aria-label={t('status.aria')}
       className={cn('glow-card relative overflow-hidden rounded-3xl border bg-card p-4')}
       style={{ ['--glow' as string]: glow }}
     >
@@ -97,19 +111,19 @@ export function StatusCard({ status }: { status: QueueStatus }) {
 
       <dl className="relative mt-3 grid grid-cols-3 gap-2 border-t pt-3">
         <div>
-          <dt className="text-sm text-muted-foreground">Зі світлом</dt>
+          <dt className="text-sm text-muted-foreground">{t('status.withLight')}</dt>
           <dd className="font-display text-3xl font-bold text-on tabular-nums">
-            {totals ? `${formatHours(totals.onHours)} ч` : '—'}
+            {totals ? `${formatHours(totals.onHours)} ${t('unit.h')}` : '—'}
           </dd>
         </div>
         <div>
-          <dt className="text-sm text-muted-foreground">Без світла</dt>
+          <dt className="text-sm text-muted-foreground">{t('status.withoutLight')}</dt>
           <dd className="font-display text-3xl font-bold text-destructive tabular-nums">
-            {totals ? `${formatHours(totals.offHours)} ч` : '—'}
+            {totals ? `${formatHours(totals.offHours)} ${t('unit.h')}` : '—'}
           </dd>
         </div>
         <div className="text-right">
-          <dt className="text-sm text-muted-foreground">Зараз</dt>
+          <dt className="text-sm text-muted-foreground">{t('status.now')}</dt>
           <dd className="font-display text-3xl font-bold tabular-nums">{clock.label}</dd>
         </div>
       </dl>

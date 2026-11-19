@@ -5,6 +5,7 @@ import type { Address } from '@/lib/api'
 import { queueStatus } from '@/lib/address-status'
 import { formatDuration, type Snapshot } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
+import { useT } from '@/hooks/use-app-data'
 
 interface AddressStripProps {
   addresses: Address[]
@@ -15,12 +16,13 @@ interface AddressStripProps {
 }
 
 export function AddressStrip({ addresses, snapshot, now, selectedId, onSelect }: AddressStripProps) {
+  const { t, lang } = useT()
   if (addresses.length < 2) return null
   return (
     <div
       className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto px-4 pb-1"
       role="list"
-      aria-label="Ваші адреси"
+      aria-label={t('strip.aria')}
     >
       {addresses.map((a) => {
         const st = queueStatus(snapshot, a.queue, now).now
@@ -57,14 +59,14 @@ export function AddressStrip({ addresses, snapshot, now, selectedId, onSelect }:
               ) : (
                 <span className="size-4 rounded-full bg-on shadow-[0_0_8px_var(--on)]" aria-hidden="true" />
               )}
-              {off ? 'Відключено' : unknown ? 'Немає даних' : 'Світло є'}
+              {off ? t('strip.off') : unknown ? t('strip.unknown') : t('strip.on')}
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">
               {st.nextChangeMin == null
                 ? unknown
-                  ? 'Графік не опубліковано'
-                  : 'Без змін до кінця доби'
-                : `${off ? 'До увімкнення' : 'До вимкнення'}: ${formatDuration(st.nextChangeMin)}`}
+                  ? t('strip.notPublished')
+                  : t('strip.noChange')
+                : `${off ? t('strip.untilOn') : t('strip.untilOff')}: ${formatDuration(st.nextChangeMin, lang)}`}
             </p>
             <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-muted" aria-hidden="true">
               <div

@@ -3,8 +3,9 @@
 import { useState } from 'react'
 import { Heart, Moon, MoonStar, Star } from 'lucide-react'
 import { api, getTelegram, haptic, json, type Bootstrap } from '@/lib/api'
+import { addressesWord, daysWord, LANGS, LOCALE } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { useActions, useExtras } from '@/hooks/use-app-data'
+import { useActions, useExtras, useT } from '@/hooks/use-app-data'
 import { ReferralCard } from './perks'
 import { Switch } from './switch'
 
@@ -15,7 +16,8 @@ interface SettingsScreenProps {
 }
 
 export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps) {
-  const { updateSettings, demo } = useActions()
+  const { updateSettings, setLanguage, demo } = useActions()
+  const { t, lang } = useT()
   const extras = useExtras()
   const [message, setMessage] = useState<string | null>(null)
   const s = data.subscriber
@@ -23,7 +25,7 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
   const openInvoice = async (path: string, body?: unknown) => {
     setMessage(null)
     if (demo) {
-      setMessage('Оплата зірками доступна лише в Telegram')
+      setMessage(t('set.starsOnlyTg'))
       return
     }
     try {
@@ -33,13 +35,13 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
         tg.openInvoice(res.invoiceUrl, (status) => {
           if (status === 'paid') {
             haptic('heavy')
-            setMessage('Дякуємо! Оплату зараховано.')
+            setMessage(t('set.paid'))
             extras.mutate()
           }
         })
       } else window.open(res.invoiceUrl, '_blank', 'noopener')
     } catch (e) {
-      setMessage(e instanceof Error ? e.message : 'Не вдалося створити рахунок')
+      setMessage(e instanceof Error ? e.message : t('sheet.invoiceFail'))
     }
   }
 
@@ -47,27 +49,27 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
 
   return (
     <div className="space-y-4">
-      <h1 className="font-display text-3xl font-bold">Налаштування</h1>
+      <h1 className="font-display text-3xl font-bold">{t('set.title')}</h1>
 
       <section className="divide-y rounded-3xl border bg-card shadow-sm">
-        <Row icon={<Moon className="size-5" aria-hidden="true" />} title="Темна тема">
-          <Switch checked={dark} onCheckedChange={onToggleDark} label="Темна тема" />
+        <Row icon={<Moon className="size-5" aria-hidden="true" />} title={t('set.dark')}>
+          <Switch checked={dark} onCheckedChange={onToggleDark} label={t('set.dark')} />
         </Row>
         <Row
           icon={<MoonStar className="size-5" aria-hidden="true" />}
-          title="Тихі години"
-          subtitle="Без звуку сповіщень у цей час"
+          title={t('set.quiet')}
+          subtitle={t('set.quietDesc')}
         >
           <Switch
             checked={s.quietHoursEnabled}
             onCheckedChange={(v) => updateSettings({ quietHoursEnabled: v })}
-            label="Тихі години"
+            label={t('set.quiet')}
           />
         </Row>
         {s.quietHoursEnabled && (
           <div className="flex items-center gap-3 px-4 py-3">
             <label className="flex flex-1 flex-col gap-1 text-sm text-muted-foreground">
-              Від
+              {t('set.from')}
               <input
                 type="time"
                 value={s.quietStart}
@@ -76,7 +78,7 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
               />
             </label>
             <label className="flex flex-1 flex-col gap-1 text-sm text-muted-foreground">
-              До
+              {t('set.to')}
               <input
                 type="time"
                 value={s.quietEnd}
@@ -87,18 +89,21 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
           </div>
         )}
         <div className="flex items-center justify-between gap-3 px-4 py-3">
-          <span className="text-sm">Мова сповіщень бота</span>
-          <div className="flex rounded-xl bg-muted p-0.5 text-sm" role="radiogroup" aria-label="Мова">
-            {(['uk', 'ru'] as const).map((l) => (
+          <span className="text-sm">{t('lang.ui')}</span>
+          <div className="flex rounded-xl bg-muted p-0.5 text-sm" role="radiogroup" aria-label={t('lang.label')}>
+            {LANGS.map((l) => (
               <button
                 key={l}
                 type="button"
                 role="radio"
-                aria-checked={s.language === l}
-                onClick={() => updateSettings({ language: l })}
-                className={cn('rounded-lg px-3 py-1', s.language === l ? 'bg-card font-medium shadow-sm' : 'text-muted-foreground')}
+                aria-checked={lang === l}
+                onClick={() => {
+                  haptic('light')
+                  setLanguage(l).catch(() => {})
+                }}
+                className={cn('rounded-lg px-3 py-1', lang === l ? 'bg-card font-medium shadow-sm' : 'text-muted-foreground')}
               >
-                {l === 'uk' ? 'Українська' : 'Русский'}
+                {t(l === 'uk' ? 'lang.uk' : 'lang.ru')}
               </button>
             ))}
           </div>
@@ -114,11 +119,16 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
             <Star className="size-5" fill="currentColor" aria-hidden="true" />
           </span>
           <div>
-            <p className="font-display text-xl font-bold">{pro?.active ? 'Pro активний' : 'offonsvitlo Pro'}</p>
+            <p className="font-display text-xl font-bold">{pro?.active ? t('set.proActive') : t('set.proTitle')}</p>
             <p className="text-sm text-muted-foreground">
               {pro?.active && pro.until
-                ? `Діє до ${new Date(pro.until).toLocaleDateString('uk-UA')}`
-                : `До ${pro?.addresses ?? 5} адрес і без реклами · ${pro?.price ?? 100} ⭐ / ${pro?.periodDays ?? 30} днів`}
+                ? t('set.proUntil', { d: new Date(pro.until).toLocaleDateString(LOCALE[lang]) })
+                : t('set.proDesc', {
+                    n: pro?.addresses ?? 5,
+                    addr: addressesWord(lang, pro?.addresses ?? 5),
+                    p: pro?.price ?? 100,
+                    days: `${pro?.periodDays ?? 30} ${daysWord(lang, pro?.periodDays ?? 30)}`,
+                  })}
             </p>
           </div>
         </div>
@@ -128,7 +138,7 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
             onClick={() => openInvoice('/api/billing/create-pro-invoice')}
             className="mt-3 w-full rounded-full bg-warn py-2.5 font-medium text-warn-foreground"
           >
-            Оформити Pro
+            {t('set.proBuy')}
           </button>
         )}
       </section>
@@ -136,7 +146,7 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
       <section className="rounded-3xl border bg-card p-4 shadow-sm">
         <p className="flex items-center gap-2 font-medium">
           <Heart className="size-4 text-destructive" fill="currentColor" aria-hidden="true" />
-          Підтримати проєкт
+          {t('set.donate')}
         </p>
         <div className="mt-3 grid grid-cols-3 gap-2">
           {(extras.data?.donate.amounts ?? [10, 50, 100]).map((n) => (
@@ -151,7 +161,7 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
           ))}
         </div>
         {extras.data?.donate.total ? (
-          <p className="mt-2 text-xs text-muted-foreground">Ви вже підтримали на {extras.data.donate.total} ⭐ — дякуємо!</p>
+          <p className="mt-2 text-xs text-muted-foreground">{t('set.donated', { n: extras.data.donate.total })}</p>
         ) : null}
       </section>
 
@@ -164,7 +174,7 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
       )}
 
       <p className="pb-2 text-center text-xs text-muted-foreground">
-        Дані: ДТЕК Дніпровські електромережі · оновлено {data.snapshot.update ?? '—'}
+        {t('set.footer', { v: data.snapshot.update ?? '—' })}
       </p>
     </div>
   )

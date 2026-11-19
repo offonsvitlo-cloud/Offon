@@ -1,3 +1,4 @@
+import { clientPref, resolveLang, translate } from './i18n'
 import type { Snapshot } from './schedule'
 
 export interface Address {
@@ -146,7 +147,7 @@ export async function api<T>(path: string, init?: RequestInit): Promise<T> {
   })
   const type = res.headers.get('content-type') ?? ''
   if (!type.includes('application/json')) {
-    throw new ApiError('Сервер недоступний', res.status, 'NOT_JSON')
+    throw new ApiError(translate(resolveLang(clientPref(), null), 'err.server'), res.status, 'NOT_JSON')
   }
   const data = await res.json()
   if (!res.ok) throw new ApiError(data?.error ?? res.statusText, res.status, data?.code)

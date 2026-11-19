@@ -1,21 +1,24 @@
 'use client'
 
 import { House, Mail, MapPin, Settings } from 'lucide-react'
+import type { Key } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
+import { useT } from '@/hooks/use-app-data'
 
 export type Tab = 'home' | 'addresses' | 'alerts' | 'settings'
 
-const TABS: { id: Tab; label: string; icon: typeof House }[] = [
-  { id: 'home', label: 'Головна', icon: House },
-  { id: 'addresses', label: 'Адреси', icon: MapPin },
-  { id: 'alerts', label: 'Повідомлення', icon: Mail },
-  { id: 'settings', label: 'Налаштування', icon: Settings },
+const TABS: { id: Tab; label: Key; icon: typeof House }[] = [
+  { id: 'home', label: 'nav.home', icon: House },
+  { id: 'addresses', label: 'nav.addresses', icon: MapPin },
+  { id: 'alerts', label: 'nav.alerts', icon: Mail },
+  { id: 'settings', label: 'nav.settings', icon: Settings },
 ]
 
 export function BottomNav({ tab, onChange, badge }: { tab: Tab; onChange: (t: Tab) => void; badge?: number }) {
+  const { t } = useT()
   return (
     <nav
-      aria-label="Основна навігація"
+      aria-label={t('nav.aria')}
       className="fixed inset-x-0 bottom-0 z-40 border-t bg-card/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-xl"
     >
       <ul className="mx-auto grid max-w-md grid-cols-4">
@@ -45,7 +48,7 @@ export function BottomNav({ tab, onChange, badge }: { tab: Tab; onChange: (t: Ta
                     </span>
                   ) : null}
                 </span>
-                <span className="truncate">{label}</span>
+                <span className="truncate">{t(label)}</span>
               </button>
             </li>
           )

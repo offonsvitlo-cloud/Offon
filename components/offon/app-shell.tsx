@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { LoaderCircle, RefreshCw } from 'lucide-react'
-import { getTelegram, haptic } from '@/lib/api'
-import { useBootstrap, useNow } from '@/hooks/use-app-data'
+import { ApiError, getTelegram, haptic } from '@/lib/api'
+import { useBootstrap, useNow, useT } from '@/hooks/use-app-data'
 import { AddAddressSheet } from './add-address-sheet'
 import { AddressesScreen } from './addresses-screen'
 import { AppHeader } from './app-header'
@@ -18,6 +18,7 @@ const AD_KEY = 'offonsvitlo_last_ad'
 export function AppShell() {
   const { data, error, isLoading, mutate } = useBootstrap()
   const now = useNow()
+  const { t, lang } = useT()
   const [tab, setTab] = useState<Tab>('home')
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [addOpen, setAddOpen] = useState(false)
@@ -29,6 +30,11 @@ export function AppShell() {
     tg?.ready?.()
     tg?.expand?.()
   }, [])
+
+  useEffect(() => {
+    document.documentElement.lang = lang
+    document.title = t('meta.title')
+  }, [lang, t])
 
   useEffect(() => {
     const tg = getTelegram()
@@ -70,20 +76,20 @@ export function AppShell() {
           <div className="grid min-h-[60dvh] place-items-center text-muted-foreground" role="status">
             <span className="flex items-center gap-2">
               <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />
-              Завантаження графіка…
+              {t('app.loading')}
             </span>
           </div>
         ) : error || !data ? (
           <div className="mt-10 rounded-3xl border bg-card p-6 text-center" role="alert">
-            <p className="font-display text-xl font-bold">Не вдалося завантажити дані</p>
-            <p className="mt-1 text-sm text-muted-foreground">{error?.message ?? 'Спробуйте ще раз'}</p>
+            <p className="font-display text-xl font-bold">{t('app.errorTitle')}</p>
+            <p className="mt-1 text-sm text-muted-foreground">{error instanceof ApiError && error.code === 'NOT_JSON' ? t('err.server') : (error?.message ?? t('app.errorRetryHint'))}</p>
             <button
               type="button"
               onClick={() => mutate()}
               className="mx-auto mt-4 flex items-center gap-1.5 rounded-full bg-on px-5 py-2.5 font-medium text-on-foreground"
             >
               <RefreshCw className="size-4" aria-hidden="true" />
-              Повторити
+              {t('app.retry')}
             </button>
           </div>
         ) : (

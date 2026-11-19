@@ -1,14 +1,19 @@
 import { Bell, CalendarClock, Megaphone, Siren, Zap, ZapOff } from 'lucide-react'
 import type { AlertEvent } from '@/lib/api'
+import { LOCALE, type Lang } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
+import { useLang } from '@/hooks/use-app-data'
 
-const timeFmt = new Intl.DateTimeFormat('uk-UA', {
-  timeZone: 'Europe/Kyiv',
-  day: '2-digit',
-  month: '2-digit',
-  hour: '2-digit',
-  minute: '2-digit',
-})
+const fmts: Partial<Record<Lang, Intl.DateTimeFormat>> = {}
+function timeFmt(lang: Lang) {
+  return (fmts[lang] ??= new Intl.DateTimeFormat(LOCALE[lang], {
+    timeZone: 'Europe/Kyiv',
+    day: '2-digit',
+    month: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }))
+}
 
 function iconFor(type: string) {
   if (type.includes('emergency')) return { Icon: Siren, cls: 'bg-destructive/15 text-destructive' }
@@ -20,6 +25,7 @@ function iconFor(type: string) {
 }
 
 export function AlertItem({ alert }: { alert: AlertEvent }) {
+  const lang = useLang()
   const { Icon, cls } = iconFor(alert.type)
   return (
     <li className="flex items-start gap-3 rounded-2xl border bg-card px-4 py-3">
@@ -31,7 +37,7 @@ export function AlertItem({ alert }: { alert: AlertEvent }) {
         <p className="text-sm text-muted-foreground">{alert.message}</p>
       </div>
       <time dateTime={alert.createdAt} className="shrink-0 text-xs text-muted-foreground tabular-nums">
-        {timeFmt.format(new Date(alert.createdAt))}
+        {timeFmt(lang).format(new Date(alert.createdAt))}
       </time>
     </li>
   )
