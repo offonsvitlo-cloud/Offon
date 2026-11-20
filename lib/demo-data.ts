@@ -92,6 +92,8 @@ export function buildDemoBootstrap(): Bootstrap {
       {
         id: 'demo_evt_1',
         type: 'power_on',
+        addressId: 'demo_home',
+        queue: 'GPV6.2',
         addressLabel: 'Дім',
         title: 'Світло повернулося · Дім',
         message: 'Черга 6.2 · за графіком',
@@ -101,6 +103,8 @@ export function buildDemoBootstrap(): Bootstrap {
       {
         id: 'demo_evt_2',
         type: 'power_off_soon',
+        addressId: 'demo_ternivskyi',
+        queue: 'GPV3.1',
         addressLabel: 'Тернівський район',
         title: 'Відключення через 15 хв · Тернівський район',
         message: 'Черга 3.1',
@@ -110,6 +114,8 @@ export function buildDemoBootstrap(): Bootstrap {
       {
         id: 'demo_evt_3',
         type: 'schedule_change',
+        addressId: 'demo_home',
+        queue: 'GPV6.2',
         addressLabel: 'Дім',
         title: 'Змінено графік ДТЕК',
         message: '14:00–16:00: світло є → відключення',

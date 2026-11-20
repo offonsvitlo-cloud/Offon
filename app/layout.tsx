@@ -52,8 +52,8 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <Script
           id="monetag-tma-sdk"
           src="https://libtl.com/sdk.js"
-          data-zone="12267169"
-          data-sdk="show_12267169"
+          data-zone="12304298"
+          data-sdk="show_12304298"
           strategy="afterInteractive"
         />
       </body>
