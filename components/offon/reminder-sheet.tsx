@@ -19,11 +19,13 @@ interface ReminderSheetProps {
   hour: number
   kind: HourKind
   existing?: Reminder
+  used?: number
+  limit?: number | null
 }
 
 const pad = (n: number) => String(n).padStart(2, '0')
 
-export function ReminderSheet({ onClose, address, dayKey, dayLabel, hour, kind, existing }: ReminderSheetProps) {
+export function ReminderSheet({ onClose, address, dayKey, dayLabel, hour, kind, existing, used = 0, limit = null }: ReminderSheetProps) {
   const { t, lang } = useT()
   const { addReminder, deleteReminder, demo } = useActions()
   const [lead, setLead] = useState(existing?.leadMin ?? 15)
@@ -43,7 +45,7 @@ export function ReminderSheet({ onClose, address, dayKey, dayLabel, hour, kind, 
 
   const fail = (e: unknown) => {
     if (e instanceof ApiError && e.code === 'PAST') setError(t('rem.past'))
-    else if (e instanceof ApiError && e.code === 'LIMIT_REACHED') setError(t('rem.limit'))
+    else if (e instanceof ApiError && e.code === 'LIMIT_REACHED') setError(t('rem.limit', { n: limit ?? 3 }))
     else setError(e instanceof Error ? e.message : t('rem.fail'))
   }
 
@@ -76,6 +78,7 @@ export function ReminderSheet({ onClose, address, dayKey, dayLabel, hour, kind, 
     }
   }
 
+  const atLimit = limit != null && !existing && used >= limit
   const from = `${pad(hour - 1)}:00`
   const to = `${pad(hour % 24)}:00`
 
@@ -154,6 +157,16 @@ export function ReminderSheet({ onClose, address, dayKey, dayLabel, hour, kind, 
           <p className="mt-1 text-right text-[11px] tabular-nums text-muted-foreground">{note.length}/120</p>
         </div>
 
+        {limit != null && (
+          <p className="mt-3 text-xs text-muted-foreground tabular-nums">
+            {t('rem.count', { n: Math.min(used, limit), max: limit })}
+          </p>
+        )}
+        {atLimit && (
+          <p role="alert" className="mt-2 rounded-xl border border-warn/50 bg-warn/10 p-3 text-sm">
+            {t('rem.limit', { n: limit ?? 3 })}
+          </p>
+        )}
         {existing && <p className="mt-3 text-xs text-muted-foreground">{t('rem.exists')}</p>}
         {demo && <p className="mt-3 text-xs text-muted-foreground">{t('rem.demoNote')}</p>}
         <p className="mt-3 text-xs text-muted-foreground">{t('rem.tgHint')}</p>
@@ -167,7 +180,7 @@ export function ReminderSheet({ onClose, address, dayKey, dayLabel, hour, kind, 
         <button
           type="button"
           onClick={save}
-          disabled={busy}
+          disabled={busy || atLimit}
           className="mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-on text-lg font-medium text-on-foreground shadow-[0_6px_20px_-8px_var(--on)] transition-opacity disabled:opacity-50"
         >
           {busy && <LoaderCircle className="size-5 animate-spin" aria-hidden="true" />}

@@ -34,6 +34,7 @@ export interface Subscriber {
   rewardSlotExpiresAt?: string | null
   rewardUsed?: boolean
   reminders?: Reminder[]
+  reminderLimit?: number | null
   rewardAdCount?: number
   rewardAdsGoal?: number
   rewardHours?: number
@@ -52,7 +53,7 @@ export interface Reminder {
 }
 
 export const REWARD_DAYS = 1
-export const BUILD = 'v9'
+export const BUILD = 'v10'
 export const REWARD_ADS_GOAL = 10
 
 export function isTrialActive(s: Subscriber, now = Date.now()) {

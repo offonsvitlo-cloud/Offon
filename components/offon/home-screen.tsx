@@ -183,6 +183,8 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark
           hour={picked.hour}
           kind={hourKind(snapshot.days?.[picked.dayKey]?.[selected.queue]?.[String(picked.hour)])}
           existing={pickedReminder}
+          used={(subscriber.reminders ?? []).filter((r) => !r.sent).length}
+          limit={subscriber.reminderLimit ?? null}
         />
       )}
 
