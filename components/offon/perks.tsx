@@ -7,6 +7,7 @@ import { debugLog } from '@/lib/ads'
 import { daysWord, LOCALE, translate, type Lang } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useActions, useExtras, useT } from '@/hooks/use-app-data'
+import { useShareMessage } from '@/hooks/use-share'
 
 function formatDate(iso: string, lang: Lang) {
   return new Date(iso).toLocaleString(LOCALE[lang], { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
@@ -174,33 +175,7 @@ export function ReferralCard({ className }: { className?: string }) {
     flash(ok ? t('perk.copied') : t('perk.copyFail'))
   }
 
-  // Сообщение «картинка + текст + кнопка» готовится на сервере заранее (Bot API 8.0, shareMessage)
-  const prepared = useRef<{ id: string; exp: number } | null>(null)
-  const canShareMessage = () => {
-    const tg = getTelegram()
-    return Boolean(tg?.initData && tg.shareMessage && tg.isVersionAtLeast?.('8.0'))
-  }
-  const prepare = async () => {
-    if (!canShareMessage()) return null
-    const cur = prepared.current
-    if (cur && cur.exp * 1000 > Date.now() + 60_000) return cur.id
-    try {
-      const res = await api<{ id?: string | null; expiresAt?: number }>('/api/share/prepare', {
-        method: 'POST',
-        body: json({ lang }),
-      })
-      if (res.id) {
-        prepared.current = { id: res.id, exp: res.expiresAt ?? Math.floor(Date.now() / 1000) + 600 }
-        return res.id
-      }
-    } catch {}
-    return null
-  }
-
-  useEffect(() => {
-    if (ref?.link) prepare()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [ref?.link, lang])
+  const { share: shareMsg, busy: sharing } = useShareMessage(undefined, Boolean(ref?.link))
 
   const fallbackShare = () => {
     const text = t('perk.shareText')
@@ -227,32 +202,7 @@ export function ReferralCard({ className }: { className?: string }) {
   const share = () => {
     if (!ref?.link) return
     haptic('light')
-    const tg = getTelegram()
-    const cur = prepared.current
-    const ready = cur && cur.exp * 1000 > Date.now() + 60_000 ? cur.id : null
-    if (ready && tg?.shareMessage) {
-      // картинка + текст + кнопка; если Telegram отклонит отправку, открываем обычное окно «Поделиться»
-      const onFail = (data?: unknown) => {
-        tg.offEvent?.('shareMessageFailed', onFail)
-        const err = (data as { error?: string } | undefined)?.error
-        debugLog(`shareMessageFailed: ${err ?? '?'}`)
-        if (err !== 'USER_DECLINED') fallbackShare()
-      }
-      tg.onEvent?.('shareMessageFailed', onFail)
-      setTimeout(() => tg.offEvent?.('shareMessageFailed', onFail), 30_000)
-      try {
-        debugLog('shareMessage(prepared)')
-        tg.shareMessage(ready)
-        return
-      } catch (e) {
-        debugLog(`shareMessage threw: ${e instanceof Error ? e.message : String(e)}`)
-        tg.offEvent?.('shareMessageFailed', onFail)
-      }
-    } else {
-      debugLog(`no prepared message (supported=${canShareMessage()}), plain share`)
-      prepare() // подготовим на следующий раз, но сейчас не заставляем ждать
-    }
-    fallbackShare()
+    shareMsg(fallbackShare)
   }
 
   const [sending, setSending] = useState(false)
@@ -312,9 +262,14 @@ export function ReferralCard({ className }: { className?: string }) {
             <button
               type="button"
               onClick={share}
-              className="flex items-center justify-center gap-1.5 rounded-full bg-on py-2.5 font-medium text-on-foreground"
+              disabled={sharing}
+              className="flex items-center justify-center gap-1.5 rounded-full bg-on py-2.5 font-medium text-on-foreground disabled:opacity-70"
             >
-              <Send className="size-4" aria-hidden="true" />
+              {sharing ? (
+                <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+              ) : (
+                <Send className="size-4" aria-hidden="true" />
+              )}
               {t('perk.share')}
             </button>
             <button

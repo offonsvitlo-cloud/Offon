@@ -8,6 +8,7 @@ import { buildScheduleText, copyText, shareViaDialog } from '@/lib/share'
 import type { Snapshot } from '@/lib/schedule'
 import { cn } from '@/lib/utils'
 import { useT } from '@/hooks/use-app-data'
+import { useShareMessage } from '@/hooks/use-share'
 
 interface Props {
   onClose: () => void
@@ -49,6 +50,8 @@ export function ShareScheduleSheet({ onClose, snapshot, queue, todayKey, tomorro
     [lang, queue, dayKey, hours, snapshot.update],
   )
 
+  const { share: shareMsg, busy: sharing } = useShareMessage(text || undefined, Boolean(text))
+
   const flash = (msg: string) => {
     setToast(msg)
     setTimeout(() => setToast(null), 3000)
@@ -56,8 +59,10 @@ export function ShareScheduleSheet({ onClose, snapshot, queue, todayKey, tomorro
 
   const share = () => {
     haptic('light')
-    debugLog('share schedule: dialog')
-    shareViaDialog(text, link)
+    shareMsg(() => {
+      debugLog('share schedule: dialog fallback')
+      shareViaDialog(text, link)
+    })
   }
 
   const copy = async () => {
@@ -133,10 +138,10 @@ export function ShareScheduleSheet({ onClose, snapshot, queue, todayKey, tomorro
           <button
             type="button"
             onClick={share}
-            disabled={!text}
-            className="flex items-center justify-center gap-1.5 rounded-full bg-on py-2.5 font-medium text-on-foreground disabled:opacity-50"
+            disabled={!text || sharing}
+            className="flex items-center justify-center gap-1.5 rounded-full bg-on py-2.5 font-medium text-on-foreground disabled:opacity-60"
           >
-            <Send className="size-4" aria-hidden="true" />
+            {sharing ? <LoaderCircle className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
             {t('perk.share')}
           </button>
           <button

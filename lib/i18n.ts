@@ -210,6 +210,10 @@ const uk = {
   'sched.totals': `Зі світлом {on} {h} · без світла {off} {h}`,
   'sched.updated': `Дані ДТЕК · оновлено {v}`,
   'sched.copied': `Текст скопійовано`,
+  'sched.on': `світло є`,
+  'sched.off': `світла немає`,
+  'sched.maybe': `можливе відключення`,
+  'sched.unknown': `немає даних`,
 
   'rem.title': `Нагадування`,
   'rem.tapHint': `Торкніться години, щоб додати нагадування`,
@@ -452,6 +456,10 @@ const ru: Record<Key, string> = {
   'sched.totals': `Со светом {on} {h} · без света {off} {h}`,
   'sched.updated': `Данные ДТЭК · обновлено {v}`,
   'sched.copied': `Текст скопирован`,
+  'sched.on': `свет есть`,
+  'sched.off': `света нет`,
+  'sched.maybe': `возможно отключение`,
+  'sched.unknown': `нет данных`,
 
   'rem.title': `Напоминание`,
   'rem.tapHint': `Коснитесь часа, чтобы добавить напоминание`,

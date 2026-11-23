@@ -1,15 +1,6 @@
 import { getTelegram } from './api'
 import { queueLabel, translate, type Lang } from './i18n'
-import { dayTitle, dayTotals, formatHours, halfSlots, hourKind, offIntervals, type HourKind, type SlotValue } from './schedule'
-
-const EMOJI: Record<HourKind, string> = {
-  on: '🟩',
-  off: '🟥',
-  'off-first': '🟧',
-  'off-second': '🟧',
-  maybe: '🟨',
-  unknown: '⬜',
-}
+import { dayTitle, dayTotals, formatDuration, formatHours, halfSlots, slotLabel, type SlotValue } from './schedule'
 
 /** Текст графика очереди для пересылки друзьям (без названия адреса: оно личное). */
 export function buildScheduleText(opts: {
@@ -21,32 +12,38 @@ export function buildScheduleText(opts: {
 }): string {
   const { lang, queue, dayKey, hours, update } = opts
   const t = (key: Parameters<typeof translate>[1], vars?: Record<string, string | number>) => translate(lang, key, vars)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const rows: string[] = []
-  for (let r = 0; r < 4; r++) {
-    let cells = ''
-    for (let c = 0; c < 6; c++) cells += EMOJI[hourKind(hours[String(r * 6 + c + 1)])]
-    rows.push(`${pad(r * 6)}–${pad(r * 6 + 5)} ${cells}`)
-  }
   const slots = halfSlots(hours)
-  const intervals = offIntervals(slots)
+
+  // подряд идущие получасы с одинаковым статусом объединяем в один промежуток
+  const lines: string[] = []
+  let start = 0
+  for (let i = 1; i <= slots.length; i++) {
+    if (i < slots.length && slots[i] === slots[start]) continue
+    const state = slots[start]
+    const from = slotLabel(start)
+    const to = i === slots.length ? '24:00' : slotLabel(i)
+    const mins = (i - start) * 30
+    const dur = formatDuration(mins, lang)
+    if (state === 'off') lines.push(`🔴 ${from}–${to} · ${t('sched.off')} (${dur})`)
+    else if (state === 'maybe') lines.push(`🟡 ${from}–${to} · ${t('sched.maybe')} (${dur})`)
+    else if (state === 'on') lines.push(`🟢 ${from}–${to} · ${t('sched.on')}`)
+    else lines.push(`⚪ ${from}–${to} · ${t('sched.unknown')}`)
+    start = i
+  }
+
   const totals = dayTotals(slots)
-  const lines = [
+  const hasOff = slots.some((s) => s === 'off')
+  const out = [
     `⚡ ${t('sched.title')}`,
     `${queueLabel(lang, queue)} · ${dayTitle(dayKey, lang)}`,
     '',
-    ...rows,
-    t('sched.legend'),
+    ...(hasOff ? [] : [`✅ ${t('sched.noOutages')}`]),
+    ...lines,
     '',
-    intervals.length ? `🔴 ${t('sched.outages', { list: intervals.join(', ') })}` : `✅ ${t('sched.noOutages')}`,
-    `💡 ${t('sched.totals', {
-      on: formatHours(totals.onHours),
-      off: formatHours(totals.offHours),
-      h: t('unit.h'),
-    })}`,
+    `💡 ${t('sched.totals', { on: formatHours(totals.onHours), off: formatHours(totals.offHours), h: t('unit.h') })}`,
   ]
-  if (update) lines.push(t('sched.updated', { v: update }))
-  return lines.join('\n')
+  if (update) out.push(t('sched.updated', { v: update }))
+  return out.join('\n')
 }
 
 /** Окно «Поделиться» в Telegram; затем системное меню; затем обычная ссылка. */
