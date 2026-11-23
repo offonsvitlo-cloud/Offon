@@ -27,6 +27,7 @@ export function ReminderSheet({ onClose, address, dayKey, dayLabel, hour, kind, 
   const { t, lang } = useT()
   const { addReminder, deleteReminder, demo } = useActions()
   const [lead, setLead] = useState(existing?.leadMin ?? 15)
+  const [note, setNote] = useState(existing?.note ?? '')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -50,7 +51,7 @@ export function ReminderSheet({ onClose, address, dayKey, dayLabel, hour, kind, 
     setBusy(true)
     setError(null)
     try {
-      await addReminder({ addressId: address.id, dayKey, hour, leadMin: lead })
+      await addReminder({ addressId: address.id, dayKey, hour, leadMin: lead, note: note.trim() })
       haptic('medium')
       onClose()
     } catch (e) {
@@ -135,6 +136,23 @@ export function ReminderSheet({ onClose, address, dayKey, dayLabel, hour, kind, 
             ))}
           </div>
         </fieldset>
+
+        <div className="mt-4">
+          <label htmlFor="rem-note" className="mb-1.5 block text-sm font-medium">
+            {t('rem.note')}
+          </label>
+          <input
+            id="rem-note"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            maxLength={120}
+            placeholder={t('rem.notePh')}
+            autoComplete="off"
+            enterKeyHint="done"
+            className="h-11 w-full rounded-xl border border-input bg-background px-3 text-base outline-none focus:border-on focus:ring-2 focus:ring-on/30"
+          />
+          <p className="mt-1 text-right text-[11px] tabular-nums text-muted-foreground">{note.length}/120</p>
+        </div>
 
         {existing && <p className="mt-3 text-xs text-muted-foreground">{t('rem.exists')}</p>}
         {demo && <p className="mt-3 text-xs text-muted-foreground">{t('rem.demoNote')}</p>}

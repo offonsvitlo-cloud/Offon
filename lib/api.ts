@@ -45,13 +45,14 @@ export interface Reminder {
   dayKey: string
   hour: number
   leadMin: number
+  note?: string
   startAt?: number
   fireAt?: number
   sent?: boolean
 }
 
 export const REWARD_DAYS = 1
-export const BUILD = 'v8'
+export const BUILD = 'v9'
 export const REWARD_ADS_GOAL = 10
 
 export function isTrialActive(s: Subscriber, now = Date.now()) {

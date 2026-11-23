@@ -202,7 +202,7 @@ export function useActions() {
       })
       await setSubscriber(res.subscriber)
     },
-    async addReminder(body: { addressId: string; dayKey: string; hour: number; leadMin: number }) {
+    async addReminder(body: { addressId: string; dayKey: string; hour: number; leadMin: number; note?: string }) {
       if (demo) {
         const startAt = Number(body.dayKey) + (body.hour - 1) * 3600
         await patchLocal((s) => ({
