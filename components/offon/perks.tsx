@@ -1,8 +1,9 @@
 'use client'
 
-import { useState } from 'react'
-import { Check, Copy, FlaskConical, Gift, LoaderCircle, Send, Users } from 'lucide-react'
-import { ApiError, getTelegram, haptic, isTrialActive, REWARD_ADS_GOAL, REWARD_DAYS, type Subscriber } from '@/lib/api'
+import { useEffect, useRef, useState } from 'react'
+import { Check, Copy, FlaskConical, Gift, ImagePlus, LoaderCircle, Send, Users } from 'lucide-react'
+import { api, ApiError, getTelegram, haptic, isTrialActive, json, REWARD_ADS_GOAL, REWARD_DAYS, type Subscriber } from '@/lib/api'
+import { debugLog } from '@/lib/ads'
 import { daysWord, LOCALE, translate, type Lang } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useActions, useExtras, useT } from '@/hooks/use-app-data'
@@ -173,28 +174,102 @@ export function ReferralCard({ className }: { className?: string }) {
     flash(ok ? t('perk.copied') : t('perk.copyFail'))
   }
 
-  const share = () => {
-    if (!ref?.link) return
-    haptic('light')
+  // Сообщение «картинка + текст + кнопка» готовится на сервере заранее (Bot API 8.0, shareMessage)
+  const prepared = useRef<{ id: string; exp: number } | null>(null)
+  const canShareMessage = () => {
+    const tg = getTelegram()
+    return Boolean(tg?.initData && tg.shareMessage && tg.isVersionAtLeast?.('8.0'))
+  }
+  const prepare = async () => {
+    if (!canShareMessage()) return null
+    const cur = prepared.current
+    if (cur && cur.exp * 1000 > Date.now() + 60_000) return cur.id
+    try {
+      const res = await api<{ id?: string | null; expiresAt?: number }>('/api/share/prepare', {
+        method: 'POST',
+        body: json({ lang }),
+      })
+      if (res.id) {
+        prepared.current = { id: res.id, exp: res.expiresAt ?? Math.floor(Date.now() / 1000) + 600 }
+        return res.id
+      }
+    } catch {}
+    return null
+  }
+
+  useEffect(() => {
+    if (ref?.link) prepare()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ref?.link, lang])
+
+  const fallbackShare = () => {
     const text = t('perk.shareText')
-    const url = `https://t.me/share/url?url=${encodeURIComponent(ref.link)}&text=${encodeURIComponent(text)}`
-    // 1) окно выбора чата прямо в Telegram (вызываем сразу, без await, чтобы не терять нажатие)
+    const url = `https://t.me/share/url?url=${encodeURIComponent(ref?.link ?? '')}&text=${encodeURIComponent(text)}`
     const tg = getTelegram()
     try {
       if (tg?.openTelegramLink) {
+        debugLog('openTelegramLink(share/url)')
         tg.openTelegramLink(url)
         return
       }
-    } catch {}
-    // 2) системное меню «Поделиться»
+    } catch (e) {
+      debugLog(`openTelegramLink threw: ${e instanceof Error ? e.message : String(e)}`)
+    }
     const nav = navigator as Navigator & { share?: (d: { url?: string; text?: string }) => Promise<void> }
     if (typeof nav.share === 'function') {
-      nav.share({ url: ref.link, text }).catch(() => {})
+      nav.share({ url: ref?.link, text }).catch(() => {})
       return
     }
-    // 3) обычная ссылка; 4) если и она заблокирована, копируем
     const win = window.open(url, '_blank', 'noopener')
-    if (!win) copyToClipboard(ref.link).then((ok) => flash(ok ? t('perk.sharedHint') : t('perk.copyFail')))
+    if (!win && ref?.link) copyToClipboard(ref.link).then((ok) => flash(ok ? t('perk.sharedHint') : t('perk.copyFail')))
+  }
+
+  const share = () => {
+    if (!ref?.link) return
+    haptic('light')
+    const tg = getTelegram()
+    const cur = prepared.current
+    const ready = cur && cur.exp * 1000 > Date.now() + 60_000 ? cur.id : null
+    if (ready && tg?.shareMessage) {
+      // картинка + текст + кнопка; если Telegram отклонит отправку, открываем обычное окно «Поделиться»
+      const onFail = (data?: unknown) => {
+        tg.offEvent?.('shareMessageFailed', onFail)
+        const err = (data as { error?: string } | undefined)?.error
+        debugLog(`shareMessageFailed: ${err ?? '?'}`)
+        if (err !== 'USER_DECLINED') fallbackShare()
+      }
+      tg.onEvent?.('shareMessageFailed', onFail)
+      setTimeout(() => tg.offEvent?.('shareMessageFailed', onFail), 30_000)
+      try {
+        debugLog('shareMessage(prepared)')
+        tg.shareMessage(ready)
+        return
+      } catch (e) {
+        debugLog(`shareMessage threw: ${e instanceof Error ? e.message : String(e)}`)
+        tg.offEvent?.('shareMessageFailed', onFail)
+      }
+    } else {
+      debugLog(`no prepared message (supported=${canShareMessage()}), plain share`)
+      prepare() // подготовим на следующий раз, но сейчас не заставляем ждать
+    }
+    fallbackShare()
+  }
+
+  const [sending, setSending] = useState(false)
+  const sendCard = async () => {
+    if (sending) return
+    setSending(true)
+    haptic('light')
+    try {
+      await api('/api/share/send-card', { method: 'POST', body: json({ lang }) })
+      haptic('medium')
+      flash(t('perk.cardSent'))
+    } catch (e) {
+      debugLog(`send-card failed: ${e instanceof Error ? e.message : String(e)}`)
+      flash(t('perk.cardFail'))
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -251,6 +326,19 @@ export function ReferralCard({ className }: { className?: string }) {
               {t('perk.copy')}
             </button>
           </div>
+          <button
+            type="button"
+            onClick={sendCard}
+            disabled={sending}
+            className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full border border-on/50 py-2.5 text-sm font-medium text-on hover:bg-on-soft disabled:opacity-60"
+          >
+            {sending ? (
+              <LoaderCircle className="size-4 animate-spin" aria-hidden="true" />
+            ) : (
+              <ImagePlus className="size-4" aria-hidden="true" />
+            )}
+            {t('perk.sendCard')}
+          </button>
           <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
             <div className="flex items-center gap-2 rounded-xl bg-muted/60 px-3 py-2">
               <Users className="size-4 text-muted-foreground" aria-hidden="true" />

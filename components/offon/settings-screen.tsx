@@ -2,12 +2,12 @@
 
 import { useRef, useState } from 'react'
 import { Heart, Moon, MoonStar, Star } from 'lucide-react'
-import { api, getTelegram, haptic, json, type Bootstrap } from '@/lib/api'
+import { api, BUILD, getTelegram, haptic, json, type Bootstrap } from '@/lib/api'
 import { adsDebugEnabled, setAdsDebug } from '@/lib/ads'
 import { addressesWord, daysWord, LANGS, LOCALE } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { useActions, useExtras, useT } from '@/hooks/use-app-data'
-import { ReferralCard } from './perks'
+import { useActions, useExtras, useNow, useT } from '@/hooks/use-app-data'
+import { ReferralCard, TrialCard } from './perks'
 import { Switch } from './switch'
 
 interface SettingsScreenProps {
@@ -19,6 +19,7 @@ interface SettingsScreenProps {
 export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps) {
   const { updateSettings, setLanguage, demo } = useActions()
   const { t, lang } = useT()
+  const now = useNow()
   const taps = useRef({ n: 0, at: 0 })
   const tapFooter = () => {
     const now = Date.now()
@@ -177,6 +178,7 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
         ) : null}
       </section>
 
+      <TrialCard subscriber={data.subscriber} now={now} />
       <ReferralCard />
 
       {message && (
@@ -186,7 +188,7 @@ export function SettingsScreen({ data, dark, onToggleDark }: SettingsScreenProps
       )}
 
       <p className="pb-2 text-center text-xs text-muted-foreground select-none" onClick={tapFooter}>
-        {t('set.footer', { v: data.snapshot.update ?? '—' })}
+        {t('set.footer', { v: data.snapshot.update ?? '—' })} · {BUILD}
       </p>
     </div>
   )

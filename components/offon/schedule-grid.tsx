@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, CircleHelp, Clock, Zap, ZapOff } from 'lucide-react'
+import { Bell, CircleHelp, Clock, Share2, Zap, ZapOff } from 'lucide-react'
 import { hourKind, type HourKind, type SlotValue } from '@/lib/schedule'
 import type { Key } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
@@ -18,6 +18,7 @@ interface ScheduleGridProps {
   onToggleDark: (v: boolean) => void
   onPickHour?: (hour: number) => void
   reminderHours?: number[]
+  onShare?: () => void
 }
 
 const KIND_STYLE: Record<HourKind, string> = {
@@ -67,6 +68,7 @@ export function ScheduleGrid({
   onToggleDark,
   onPickHour,
   reminderHours = [],
+  onShare,
 }: ScheduleGridProps) {
   const { t } = useT()
   const currentHour = Math.floor(minutesOfDay / 60)
@@ -147,6 +149,16 @@ export function ScheduleGrid({
       )}
 
       {hasData && onPickHour && <p className="mt-2 text-xs text-muted-foreground">{t('rem.tapHint')}</p>}
+      {onShare && (
+        <button
+          type="button"
+          onClick={onShare}
+          className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-full border border-on/50 py-2.5 text-sm font-medium text-on hover:bg-on-soft"
+        >
+          <Share2 className="size-4" aria-hidden="true" />
+          {t('sched.shareBtn')}
+        </button>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         <ul className="flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground" aria-label={t('grid.legend')}>

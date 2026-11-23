@@ -51,6 +51,7 @@ export interface Reminder {
 }
 
 export const REWARD_DAYS = 1
+export const BUILD = 'v7'
 export const REWARD_ADS_GOAL = 10
 
 export function isTrialActive(s: Subscriber, now = Date.now()) {
@@ -118,6 +119,10 @@ interface TelegramWebApp {
   expand?: () => void
   openInvoice?: (url: string, cb?: (status: string) => void) => void
   openTelegramLink?: (url: string) => void
+  shareMessage?: (id: string, cb?: (sent: boolean) => void) => void
+  isVersionAtLeast?: (version: string) => boolean
+  onEvent?: (event: string, cb: (data?: unknown) => void) => void
+  offEvent?: (event: string, cb: (data?: unknown) => void) => void
   setHeaderColor?: (color: string) => void
   setBackgroundColor?: (color: string) => void
   HapticFeedback?: { impactOccurred: (s: string) => void; notificationOccurred: (s: string) => void }

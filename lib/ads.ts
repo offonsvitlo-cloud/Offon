@@ -50,6 +50,8 @@ function log(msg: string) {
   } catch {}
 }
 
+export const debugLog = log
+
 export function setAdsDebug(on: boolean) {
   try {
     window.localStorage.setItem(DEBUG_KEY, on ? '1' : '0')
@@ -206,14 +208,18 @@ export async function showAd(): Promise<boolean> {
 
 /* ---------- автоматическая реклама ---------- */
 
-// Настройки In-App Interstitial (как в кабинете Monetag): 2 показа за 0,1 ч (6 мин),
-// интервал 30 с, первая реклама через 5 с, сессия не сохраняется между страницами.
-const IN_APP = { frequency: 2, capping: 0.1, interval: 30, timeout: 5, everyPage: false }
+/*
+ * Чтобы реклама не накладывалась и не раздражала, автоматически показывается ОДИН формат —
+ * баннер Vignette: не сразу при открытии, не чаще раза в 20 минут. Rewarded-реклама идёт только по
+ * нажатию пользователя («Дивитись рекламу»). In-App Interstitial выключен: включите ENABLE_IN_APP,
+ * если нужен ещё один формат (но он будет перекрываться с Vignette).
+ */
+const ENABLE_IN_APP = false
+const IN_APP = { frequency: 1, capping: 0.5, interval: 60, timeout: 30, everyPage: false }
 let inAppStarted = false
 
-/** Запускает встроенную межстраничную рекламу: сама показывается по настройкам выше. */
 export function startInAppAds() {
-  if (inAppStarted || typeof window === 'undefined') return
+  if (!ENABLE_IN_APP || inAppStarted || typeof window === 'undefined') return
   inAppStarted = true
   installAdGuard()
   waitForSdk().then((ok) => {
@@ -234,16 +240,39 @@ export function startInAppAds() {
   })
 }
 
-/** Баннер Vignette (зона 12304370): подключается один раз, только если реклама не отключена. */
+const VIGNETTE_KEY = 'offonsvitlo_vignette_at'
+const VIGNETTE_DELAY_MS = 12_000 // пауза после открытия приложения
+const VIGNETTE_MIN_GAP_MS = 20 * 60_000 // не чаще раза в 20 минут
+let vignetteTimer: ReturnType<typeof setTimeout> | null = null
+
+/** Баннер Vignette (зона 12304370): один раз за сессию, с паузой и ограничением по времени. */
 export function loadVignette() {
-  if (typeof document === 'undefined' || document.getElementById('__vignette')) return
+  if (typeof document === 'undefined' || vignetteTimer || document.getElementById('__vignette')) return
+  let last = 0
   try {
-    const s = document.createElement('script')
-    s.id = '__vignette'
-    s.dataset.zone = VIGNETTE_ZONE
-    s.src = VIGNETTE_SRC
-    s.onerror = () => log('vignette failed to load')
-    ;(document.body ?? document.documentElement).appendChild(s)
-    log('vignette loaded')
+    last = Number(window.localStorage.getItem(VIGNETTE_KEY) ?? 0)
   } catch {}
+  if (Date.now() - last < VIGNETTE_MIN_GAP_MS) {
+    log('vignette skipped (cooldown)')
+    return
+  }
+  let tries = 0
+  const attempt = () => {
+    // если на экране реклама за награду, подождём, чтобы баннеры не накладывались
+    if (busyAt && Date.now() - busyAt < 60_000 && tries++ < 6) {
+      vignetteTimer = setTimeout(attempt, 15_000)
+      return
+    }
+    try {
+      const s = document.createElement('script')
+      s.id = '__vignette'
+      s.dataset.zone = VIGNETTE_ZONE
+      s.src = VIGNETTE_SRC
+      s.onerror = () => log('vignette failed to load')
+      ;(document.body ?? document.documentElement).appendChild(s)
+      window.localStorage.setItem(VIGNETTE_KEY, String(Date.now()))
+      log('vignette loaded')
+    } catch {}
+  }
+  vignetteTimer = setTimeout(attempt, VIGNETTE_DELAY_MS)
 }

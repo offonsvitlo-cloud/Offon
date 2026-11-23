@@ -8,10 +8,11 @@ import { hourKind } from '@/lib/schedule'
 import { queueStatus } from '@/lib/address-status'
 import { queueLabel } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
-import { useActions, useT, useVisibleAlerts } from '@/hooks/use-app-data'
+import { useActions, useExtras, useT, useVisibleAlerts } from '@/hooks/use-app-data'
 import { AddressStrip } from './address-strip'
 import { HistorySection } from './history-section'
 import { ReminderSheet } from './reminder-sheet'
+import { ShareScheduleSheet } from './share-schedule-sheet'
 import { ScheduleGrid } from './schedule-grid'
 import { StatusCard } from './status-card'
 
@@ -32,6 +33,8 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark
   const [showTomorrow, setShowTomorrow] = useState(false)
   const [picked, setPicked] = useState<{ hour: number; dayKey: string; tomorrow: boolean } | null>(null)
   const visibleAlerts = useVisibleAlerts()
+  const [shareOpen, setShareOpen] = useState(false)
+  const extras = useExtras()
 
   const { snapshot, subscriber } = data
   const addresses = subscriber.addresses
@@ -147,12 +150,28 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark
         dark={dark}
         onToggleDark={onToggleDark}
         reminderHours={reminderHours}
+        onShare={() => {
+          haptic('light')
+          setShareOpen(true)
+        }}
         onPickHour={(hour) => {
           if (!dayKey) return
           haptic('light')
           setPicked({ hour, dayKey, tomorrow: showTomorrow })
         }}
       />
+
+      {shareOpen && (
+        <ShareScheduleSheet
+          onClose={() => setShareOpen(false)}
+          snapshot={snapshot}
+          queue={selected.queue}
+          todayKey={status.todayKey}
+          tomorrowKey={status.tomorrowKey}
+          startTomorrow={showTomorrow}
+          link={extras.data?.referral?.link ?? ''}
+        />
+      )}
 
       {picked && (
         <ReminderSheet
