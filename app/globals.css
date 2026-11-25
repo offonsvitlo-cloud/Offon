@@ -77,28 +77,29 @@
 
 .dark {
   color-scheme: dark;
-  --background: oklch(0.15 0.012 155);
+  /* глубокий чёрный (OLED): чёрные пиксели не светятся, экономия заряда */
+  --background: oklch(0 0 0);
   --foreground: oklch(0.96 0.005 150);
-  --card: oklch(0.2 0.014 155);
+  --card: oklch(0.14 0 0);
   --card-foreground: oklch(0.96 0.005 150);
-  --popover: oklch(0.2 0.014 155);
+  --popover: oklch(0.14 0 0);
   --popover-foreground: oklch(0.96 0.005 150);
   --primary: oklch(0.7 0.18 148);
   --primary-foreground: oklch(0.15 0.02 150);
-  --secondary: oklch(0.26 0.014 155);
+  --secondary: oklch(0.2 0 0);
   --secondary-foreground: oklch(0.96 0.005 150);
-  --muted: oklch(0.26 0.014 155);
+  --muted: oklch(0.2 0 0);
   --muted-foreground: oklch(0.7 0.012 150);
-  --accent: oklch(0.3 0.05 148);
+  --accent: oklch(0.22 0.04 148);
   --accent-foreground: oklch(0.9 0.08 148);
   --destructive: oklch(0.66 0.19 25);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 16%);
+  --border: oklch(1 0 0 / 14%);
+  --input: oklch(1 0 0 / 18%);
   --ring: oklch(0.7 0.18 148);
 
   --on: oklch(0.62 0.17 148);
   --on-foreground: oklch(0.99 0 0);
-  --on-soft: oklch(0.3 0.06 148);
+  --on-soft: oklch(0.2 0.05 148);
   --off: oklch(0.4 0.11 15);
   --off-foreground: oklch(0.97 0.01 15);
   --warn: oklch(0.76 0.15 70);
@@ -225,4 +226,9 @@
   .spark {
     display: none;
   }
+}
+
+/* в тёмной теме без пульсирующего свечения: меньше перерисовок и расход батареи */
+.dark .glow-card {
+  animation: none;
 }

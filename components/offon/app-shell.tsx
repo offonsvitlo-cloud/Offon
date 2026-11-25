@@ -38,7 +38,7 @@ export function AppShell() {
 
   useEffect(() => {
     const tg = getTelegram()
-    const color = dark ? '#0b120e' : '#eef1ee'
+    const color = dark ? '#000000' : '#eef1ee'
     try {
       tg?.setHeaderColor?.(color)
       tg?.setBackgroundColor?.(color)

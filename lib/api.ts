@@ -55,7 +55,7 @@ export interface Reminder {
 }
 
 export const REWARD_DAYS = 1
-export const BUILD = 'v11'
+export const BUILD = 'v12'
 export const REWARD_ADS_GOAL = 10
 
 export function isTrialActive(s: Subscriber, now = Date.now()) {
