@@ -1,6 +1,6 @@
 'use client'
 
-import { ChevronRight, CircleHelp, TriangleAlert } from 'lucide-react'
+import { ChevronRight, CircleHelp, Lock, TriangleAlert } from 'lucide-react'
 import type { Address } from '@/lib/api'
 import { queueStatus } from '@/lib/address-status'
 import { formatDuration, type Snapshot } from '@/lib/schedule'
@@ -29,6 +29,31 @@ export function AddressStrip({ addresses, snapshot, now, selectedId, onSelect }:
         const off = st.state === 'off'
         const unknown = st.state === 'unknown'
         const selected = a.id === selectedId
+        if (a.locked) {
+          return (
+            <button
+              key={a.id}
+              type="button"
+              role="listitem"
+              onClick={() => onSelect(a.id)}
+              aria-pressed={selected}
+              className={cn(
+                'relative w-[78%] max-w-72 shrink-0 snap-start overflow-hidden rounded-2xl border border-dashed bg-card p-3.5 text-left shadow-sm transition-all',
+                selected ? 'border-warn ring-2 ring-warn/40' : 'hover:border-foreground/30',
+              )}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="truncate font-display text-base font-medium tracking-wide uppercase">{a.label}</span>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              </div>
+              <div className="mt-0.5 flex items-center gap-1.5 font-display text-xl font-bold tracking-wide text-muted-foreground uppercase">
+                <Lock className="size-5" aria-hidden="true" />
+                {t('lock.badge')}
+              </div>
+              <p className="mt-0.5 text-sm text-muted-foreground">{t('lock.cardHint')}</p>
+            </button>
+          )
+        }
         return (
           <button
             key={a.id}

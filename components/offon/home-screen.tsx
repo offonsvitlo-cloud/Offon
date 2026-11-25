@@ -12,6 +12,7 @@ import { useActions, useExtras, useT, useVisibleAlerts } from '@/hooks/use-app-d
 import { AddressStrip } from './address-strip'
 import { HistorySection } from './history-section'
 import { ReminderSheet } from './reminder-sheet'
+import { RestoreOptions } from './restore-options'
 import { ShareScheduleSheet } from './share-schedule-sheet'
 import { ScheduleGrid } from './schedule-grid'
 import { StatusCard } from './status-card'
@@ -22,11 +23,12 @@ interface HomeScreenProps {
   selectedId: string | null
   onSelect: (id: string) => void
   onAddAddress: () => void
+  onOpenSettings: () => void
   dark: boolean
   onToggleDark: (v: boolean) => void
 }
 
-export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark, onToggleDark }: HomeScreenProps) {
+export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, onOpenSettings, dark, onToggleDark }: HomeScreenProps) {
   const { refreshDtek } = useActions()
   const { t, lang } = useT()
   const [refreshing, setRefreshing] = useState(false)
@@ -127,6 +129,10 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark
         }}
       />
 
+      {selected.locked ? (
+        <RestoreOptions subscriber={subscriber} now={now} labels={[selected.label]} onOpenPro={onOpenSettings} />
+      ) : (
+        <>
       <StatusCard status={status} />
 
       <button
@@ -195,6 +201,8 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, dark
         tomorrowKey={status.tomorrowKey}
         alerts={alerts}
       />
+        </>
+      )}
     </div>
   )
 }

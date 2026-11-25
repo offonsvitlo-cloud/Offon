@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { ChevronDown, MapPin, Plus, Trash2, Zap, ZapOff } from 'lucide-react'
+import { ChevronDown, Lock, MapPin, Plus, Trash2, Zap, ZapOff } from 'lucide-react'
 import type { Address, Bootstrap } from '@/lib/api'
 import { haptic, maxAddresses } from '@/lib/api'
 import { queueStatus } from '@/lib/address-status'
 import { queueLabel } from '@/lib/i18n'
 import { cn } from '@/lib/utils'
 import { useActions, useT } from '@/hooks/use-app-data'
+import { RestoreOptions } from './restore-options'
 import { ReferralCard, TrialCard } from './perks'
 import { Switch } from './switch'
 
@@ -17,13 +18,15 @@ interface AddressesScreenProps {
   data: Bootstrap
   now: Date
   onAdd: () => void
+  onOpenSettings: () => void
   onOpen: (id: string) => void
 }
 
-export function AddressesScreen({ data, now, onAdd, onOpen }: AddressesScreenProps) {
+export function AddressesScreen({ data, now, onAdd, onOpenSettings, onOpen }: AddressesScreenProps) {
   const { t } = useT()
   const { subscriber, snapshot } = data
   const max = maxAddresses(data)
+  const lockedLabels = subscriber.addresses.filter((a) => a.locked).map((a) => a.label)
 
   return (
     <div className="space-y-4">
@@ -31,7 +34,7 @@ export function AddressesScreen({ data, now, onAdd, onOpen }: AddressesScreenPro
         <div>
           <h1 className="font-display text-3xl font-bold">{t('addrs.title')}</h1>
           <p className="text-sm text-muted-foreground">
-            {t('addrs.used', { n: subscriber.addresses.length, max })}
+            {t('addrs.used', { n: subscriber.addresses.length - lockedLabels.length, max })}
           </p>
         </div>
         <button
@@ -56,8 +59,14 @@ export function AddressesScreen({ data, now, onAdd, onOpen }: AddressesScreenPro
         </ul>
       )}
 
-      <TrialCard subscriber={subscriber} now={now} />
-      <ReferralCard />
+      {lockedLabels.length > 0 ? (
+        <RestoreOptions subscriber={subscriber} now={now} labels={lockedLabels} onOpenPro={onOpenSettings} />
+      ) : (
+        <>
+          <TrialCard subscriber={subscriber} now={now} />
+          <ReferralCard />
+        </>
+      )}
     </div>
   )
 }
@@ -77,18 +86,20 @@ function AddressCard({
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
-    <li className={cn('overflow-hidden rounded-3xl border bg-card shadow-sm', !a.enabled && 'opacity-70')}>
+    <li className={cn('overflow-hidden rounded-3xl border bg-card shadow-sm', (!a.enabled || a.locked) && 'opacity-70')}>
       <div className="flex items-center gap-3 p-4">
         <button
           type="button"
           onClick={() => onOpen(a.id)}
           className={cn(
             'grid size-12 shrink-0 place-items-center rounded-2xl text-white',
-            state === 'off' ? 'bg-off' : state === 'on' ? 'bg-on shadow-[0_0_14px_-3px_var(--on)]' : 'bg-muted-foreground',
+            a.locked ? 'bg-muted-foreground' : state === 'off' ? 'bg-off' : state === 'on' ? 'bg-on shadow-[0_0_14px_-3px_var(--on)]' : 'bg-muted-foreground',
           )}
           aria-label={t('addrs.openAria', { label: a.label })}
         >
-          {state === 'off' ? (
+          {a.locked ? (
+            <Lock className="size-6" aria-hidden="true" />
+          ) : state === 'off' ? (
             <ZapOff className="size-6" aria-hidden="true" />
           ) : (
             <Zap className="size-6" fill="currentColor" aria-hidden="true" />
@@ -102,14 +113,20 @@ function AddressCard({
           </p>
           <p className="text-sm font-medium text-on">{queueLabel(lang, a.queue)}</p>
         </div>
-        <Switch
-          checked={a.enabled}
-          onCheckedChange={(v) => {
-            haptic('light')
-            updateAddress(a.id, { enabled: v })
-          }}
-          label={t('addrs.notifyFor', { label: a.label })}
-        />
+        {a.locked ? (
+          <span className="shrink-0 rounded-full border border-warn/50 bg-warn/10 px-2.5 py-1 text-xs font-medium">
+            {t('lock.badge')}
+          </span>
+        ) : (
+          <Switch
+            checked={a.enabled}
+            onCheckedChange={(v) => {
+              haptic('light')
+              updateAddress(a.id, { enabled: v })
+            }}
+            label={t('addrs.notifyFor', { label: a.label })}
+          />
+        )}
       </div>
 
       <button

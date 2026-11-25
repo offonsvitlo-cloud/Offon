@@ -17,6 +17,7 @@ export interface Address {
   notifyEmergency: boolean
   emergencyInfo?: { type?: string; start?: string; end?: string } | null
   createdAt?: string
+  locked?: boolean
 }
 
 export interface Subscriber {
@@ -35,6 +36,7 @@ export interface Subscriber {
   rewardUsed?: boolean
   reminders?: Reminder[]
   reminderLimit?: number | null
+  maxAddresses?: number
   rewardAdCount?: number
   rewardAdsGoal?: number
   rewardHours?: number
@@ -53,7 +55,7 @@ export interface Reminder {
 }
 
 export const REWARD_DAYS = 1
-export const BUILD = 'v10'
+export const BUILD = 'v11'
 export const REWARD_ADS_GOAL = 10
 
 export function isTrialActive(s: Subscriber, now = Date.now()) {
@@ -61,6 +63,7 @@ export function isTrialActive(s: Subscriber, now = Date.now()) {
 }
 
 export function maxAddresses(d: Pick<Bootstrap, 'subscriber' | 'monetization'>) {
+  if (typeof d.subscriber.maxAddresses === 'number') return d.subscriber.maxAddresses
   return (
     (d.monetization?.freeAddressLimit ?? 2) + (d.subscriber.extraAddressSlots ?? 0) + (isTrialActive(d.subscriber) ? 1 : 0)
   )

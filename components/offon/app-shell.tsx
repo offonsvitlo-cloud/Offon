@@ -103,6 +103,7 @@ export function AppShell() {
                 selectedId={selectedId}
                 onSelect={setSelectedId}
                 onAddAddress={() => setAddOpen(true)}
+                onOpenSettings={() => changeTab('settings')}
                 dark={dark}
                 onToggleDark={toggleDark}
               />
@@ -112,6 +113,7 @@ export function AppShell() {
                 data={data}
                 now={now}
                 onAdd={() => setAddOpen(true)}
+                onOpenSettings={() => changeTab('settings')}
                 onOpen={(id) => {
                   setSelectedId(id)
                   changeTab('home')
