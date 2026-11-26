@@ -1,5 +1,5 @@
-import { AppShell } from '@/components/offon/app-shell'
+import { RootEntry } from '@/components/root-entry'
 
 export default function Page() {
-  return <AppShell />
+  return <RootEntry />
 }
