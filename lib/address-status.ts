@@ -2,7 +2,7 @@ import { analyzeNow, dayTotals, findDayKeys, halfSlots, kyivClock, type Snapshot
 
 export function queueStatus(snapshot: Snapshot, queue: string, now: Date) {
   const { todayKey, tomorrowKey } = findDayKeys(snapshot, now)
-  const today = halfSlots(snapshot.days?.[todayKey]?.[queue])
+  const today = halfSlots(todayKey ? snapshot.days?.[todayKey]?.[queue] : undefined)
   const tomorrow = halfSlots(tomorrowKey ? snapshot.days?.[tomorrowKey]?.[queue] : undefined)
   const clock = kyivClock(now)
   return {

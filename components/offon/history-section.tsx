@@ -11,7 +11,7 @@ import { AlertItem } from './alert-item'
 interface HistorySectionProps {
   snapshot: Snapshot
   queue: string
-  todayKey: string
+  todayKey: string | null
   tomorrowKey: string | null
   alerts: AlertEvent[]
 }
@@ -21,9 +21,10 @@ export function HistorySection({ snapshot, queue, todayKey, tomorrowKey, alerts 
   const [mode, setMode] = useState<'days' | 'events'>('days')
 
   const merged = { ...(snapshot.historyDays ?? {}), ...(snapshot.days ?? {}) }
-  const yesterdayKey = String(Number(todayKey) - 86400)
+  const base = todayKey ? Number(todayKey) : Math.floor(Date.now() / 1000)
+  const yesterdayKey = String(base - 86400)
   const dayKeys = Object.keys(merged)
-    .filter((k) => Number(k) <= Number(tomorrowKey ?? todayKey))
+    .filter((k) => Number(k) <= Number(tomorrowKey ?? todayKey ?? base))
     .sort((a, b) => Number(b) - Number(a))
     .slice(0, 8)
 

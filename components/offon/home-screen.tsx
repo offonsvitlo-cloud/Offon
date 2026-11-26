@@ -129,6 +129,11 @@ export function HomeScreen({ data, now, selectedId, onSelect, onAddAddress, onOp
         }}
       />
 
+      {!selected.locked && !status.todayKey && (
+        <p role="status" className="rounded-2xl border border-warn/50 bg-warn/10 p-3 text-sm">
+          {t('home.noToday', { v: snapshot.update ?? '—' })}
+        </p>
+      )}
       {selected.locked ? (
         <RestoreOptions subscriber={subscriber} now={now} labels={[selected.label]} onOpenPro={onOpenSettings} />
       ) : (

@@ -45,8 +45,11 @@ export function kyivClock(now: Date) {
 export function findDayKeys(snap: Snapshot, now: Date) {
   const keys = Object.keys(snap.days ?? {})
   const todayDate = kyivDate(now.getTime())
-  const todayKey = keys.find((k) => kyivDate(Number(k) * 1000) === todayDate) ?? String(snap.today)
-  const tomorrowDate = kyivDate(Number(todayKey) * 1000 + 36 * 3600 * 1000)
+  // Если данных на сегодняшнюю дату (по Киеву) ещё нет, «сегодня» остаётся пустым:
+  // чужой (вчерашний) день не должен выдаваться за сегодняшний.
+  const todayKey = keys.find((k) => kyivDate(Number(k) * 1000) === todayDate) ?? null
+  const [y, m, d] = todayDate.split('-').map(Number)
+  const tomorrowDate = new Date(Date.UTC(y, m - 1, d + 1)).toISOString().slice(0, 10)
   const tomorrowKey = keys.find((k) => kyivDate(Number(k) * 1000) === tomorrowDate) ?? null
   return { todayKey, tomorrowKey }
 }
